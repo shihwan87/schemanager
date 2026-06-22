@@ -41,7 +41,7 @@ export function Dashboard() {
   }
 
   return (
-    <div style={S.page}>
+    <div style={S.page} className="safe-top safe-bottom">
       <header style={S.header}>
         <div>
           <h1 style={S.h1}>Projects</h1>
@@ -124,7 +124,7 @@ const FS = {
 
 const S = {
   page: { minHeight: '100vh', background: COLORS.bg, color: COLORS.text,
-    padding: '24px 20px 60px', maxWidth: 1200, margin: '0 auto' },
+    padding: '0 20px', maxWidth: 1200, margin: '0 auto' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     gap: 12, marginBottom: 20, flexWrap: 'wrap' },
   h1: { fontSize: 22, fontWeight: 700, margin: 0 },

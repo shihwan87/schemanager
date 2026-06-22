@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { COLORS } from '../styles/theme'
 
 // Hybrid date input: free-text typing + native picker button.
 // Accepts YYYY-MM-DD, YY-MM-DD, YYYY/MM/DD, YY/MM/DD, YYYY.MM.DD.
-// Picker button calls showPicker() (Chrome/Edge/Safari 16+ incl. iOS).
+// Picker is a real <input type="date"> overlaid on the button — taps land on
+// the native control directly so iOS Safari opens the picker without needing
+// showPicker() (which is unreliable across iOS versions / activation paths).
 export function DateInput({ value, onChange, style }) {
   const [text, setText] = useState(value || '')
-  const hiddenRef = useRef(null)
 
   useEffect(() => { setText(value || '') }, [value])
 
@@ -19,15 +20,6 @@ export function DateInput({ value, onChange, style }) {
     }
   }
 
-  const openPicker = () => {
-    const el = hiddenRef.current
-    if (!el) return
-    if (typeof el.showPicker === 'function') {
-      try { el.showPicker(); return } catch {}
-    }
-    el.focus(); el.click()
-  }
-
   return (
     <div style={{ ...S.wrap, ...style }}>
       <input type="text" inputMode="numeric"
@@ -37,12 +29,14 @@ export function DateInput({ value, onChange, style }) {
         onBlur={commit}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit() } }}
         style={S.text} />
-      <button type="button" onClick={openPicker} style={S.btn} title="Open calendar">📅</button>
-      <input type="date" ref={hiddenRef}
-        value={value || ''}
-        onChange={e => { setText(e.target.value); onChange(e.target.value || '') }}
-        style={S.hidden}
-        tabIndex={-1} aria-hidden="true" />
+      <span style={S.btnWrap}>
+        <span style={S.btnIcon} aria-hidden="true">📅</span>
+        <input type="date"
+          value={value || ''}
+          onChange={e => { setText(e.target.value); onChange(e.target.value || '') }}
+          style={S.dateOverlay}
+          aria-label="Open calendar" />
+      </span>
     </div>
   )
 }
@@ -70,7 +64,12 @@ const S = {
     background: COLORS.bg },
   text: { background: 'transparent', color: COLORS.text, border: 0, outline: 'none',
     padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', minWidth: 120 },
-  btn: { background: COLORS.card, color: COLORS.text, border: 0, borderLeft: `1px solid ${COLORS.border}`,
-    cursor: 'pointer', padding: '0 12px', fontSize: 16 },
-  hidden: { position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' },
+  btnWrap: { position: 'relative', display: 'inline-flex', alignItems: 'center',
+    justifyContent: 'center', background: COLORS.card,
+    borderLeft: `1px solid ${COLORS.border}`, padding: '0 12px', minWidth: 44,
+    cursor: 'pointer' },
+  btnIcon: { fontSize: 16, pointerEvents: 'none' },
+  dateOverlay: { position: 'absolute', inset: 0, width: '100%', height: '100%',
+    opacity: 0, border: 0, padding: 0, margin: 0, cursor: 'pointer',
+    background: 'transparent', color: 'transparent', WebkitAppearance: 'none' },
 }
