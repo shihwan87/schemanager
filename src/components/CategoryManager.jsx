@@ -1,7 +1,15 @@
 import { useState } from 'react'
+import {
+  DndContext, closestCenter, PointerSensor, TouchSensor,
+  useSensor, useSensors
+} from '@dnd-kit/core'
+import {
+  SortableContext, verticalListSortingStrategy, arrayMove, useSortable
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { COLORS, PALETTE, UNCATEGORIZED } from '../styles/theme'
 
-export function CategoryManager({ open, onClose, categories, onAdd, onUpdate, onDelete }) {
+export function CategoryManager({ open, onClose, categories, onAdd, onUpdate, onDelete, onReorder }) {
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(PALETTE[0])
   const [editingId, setEditingId] = useState(null)
@@ -9,6 +17,11 @@ export function CategoryManager({ open, onClose, categories, onAdd, onUpdate, on
   const [editColor, setEditColor] = useState('')
   const [confirmDel, setConfirmDel] = useState(null)
   const [err, setErr] = useState(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+  )
 
   if (!open) return null
 
@@ -34,6 +47,16 @@ export function CategoryManager({ open, onClose, categories, onAdd, onUpdate, on
     } catch (e) { setErr(e.message || String(e)) }
   }
 
+  const onDragEnd = async (e) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const oldIdx = categories.findIndex(c => c.id === active.id)
+    const newIdx = categories.findIndex(c => c.id === over.id)
+    if (oldIdx < 0 || newIdx < 0) return
+    const reordered = arrayMove(categories, oldIdx, newIdx)
+    await onReorder(reordered.map(c => c.id))
+  }
+
   return (
     <div style={S.overlay} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={S.modal}>
@@ -43,43 +66,25 @@ export function CategoryManager({ open, onClose, categories, onAdd, onUpdate, on
         </div>
 
         <div style={S.list}>
-          {categories.map(c => {
-            const isUncat = c.name === UNCATEGORIZED
-            const isEditing = editingId === c.id
-            const isConfirming = confirmDel === c.id
-            return (
-              <div key={c.id} style={S.row}>
-                {isEditing ? (
-                  <>
-                    <Swatches value={editColor} onChange={setEditColor} />
-                    <input style={S.input} value={editName} onChange={e => setEditName(e.target.value)} />
-                    <button onClick={saveEdit} style={S.save}>Save</button>
-                    <button onClick={() => setEditingId(null)} style={S.cancel}>Cancel</button>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ ...S.dot, background: c.color }} />
-                    <span style={S.name}>{c.name}</span>
-                    {!isUncat && !isConfirming && (
-                      <>
-                        <button onClick={() => startEdit(c)} style={S.edit}>Edit</button>
-                        <button onClick={() => setConfirmDel(c.id)} style={S.del}>Delete</button>
-                      </>
-                    )}
-                    {!isUncat && isConfirming && (
-                      <>
-                        <button onClick={async () => { await onDelete(c.id); setConfirmDel(null) }} style={S.delConfirm}>
-                          Reassign projects → Uncategorized
-                        </button>
-                        <button onClick={() => setConfirmDel(null)} style={S.cancel}>Cancel</button>
-                      </>
-                    )}
-                    {isUncat && <span style={S.builtIn}>(fallback)</span>}
-                  </>
-                )}
-              </div>
-            )
-          })}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
+              {categories.map(c => (
+                <CategoryRow key={c.id}
+                  category={c}
+                  isEditing={editingId === c.id}
+                  isConfirming={confirmDel === c.id}
+                  editName={editName} editColor={editColor}
+                  setEditName={setEditName} setEditColor={setEditColor}
+                  onStartEdit={() => startEdit(c)}
+                  onSaveEdit={saveEdit}
+                  onCancelEdit={() => setEditingId(null)}
+                  onAskDelete={() => setConfirmDel(c.id)}
+                  onCancelDelete={() => setConfirmDel(null)}
+                  onConfirmDelete={async () => { await onDelete(c.id); setConfirmDel(null) }}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         </div>
 
         <form onSubmit={submitNew} style={S.addBlock}>
@@ -94,6 +99,57 @@ export function CategoryManager({ open, onClose, categories, onAdd, onUpdate, on
 
         {err && <p style={S.err}>{err}</p>}
       </div>
+    </div>
+  )
+}
+
+function CategoryRow({
+  category: c, isEditing, isConfirming,
+  editName, editColor, setEditName, setEditColor,
+  onStartEdit, onSaveEdit, onCancelEdit,
+  onAskDelete, onCancelDelete, onConfirmDelete,
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: c.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+  }
+  const isUncat = c.name === UNCATEGORIZED
+
+  return (
+    <div ref={setNodeRef} style={{ ...S.row, ...style }}>
+      <span {...attributes} {...listeners} style={S.handle} title="Drag to reorder">⋮⋮</span>
+      {isEditing ? (
+        <>
+          <Swatches value={editColor} onChange={setEditColor} />
+          <input style={S.input} value={editName} onChange={e => setEditName(e.target.value)} />
+          <button onClick={onSaveEdit} style={S.save}>Save</button>
+          <button onClick={onCancelEdit} style={S.cancel}>Cancel</button>
+        </>
+      ) : (
+        <>
+          <span style={{ ...S.dot, background: c.color }} />
+          <span style={S.name}>{c.name}</span>
+          {!isUncat && !isConfirming && (
+            <>
+              <button onClick={onStartEdit} style={S.edit}>Edit</button>
+              <button onClick={onAskDelete} style={S.del}>Delete</button>
+            </>
+          )}
+          {!isUncat && isConfirming && (
+            <>
+              <button onClick={onConfirmDelete} style={S.delConfirm}>
+                Reassign projects → Uncategorized
+              </button>
+              <button onClick={onCancelDelete} style={S.cancel}>Cancel</button>
+            </>
+          )}
+          {isUncat && <span style={S.builtIn}>(fallback)</span>}
+        </>
+      )}
     </div>
   )
 }
@@ -133,6 +189,8 @@ const S = {
   list: { padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 },
   row: { display: 'flex', alignItems: 'center', gap: 10, background: COLORS.bg,
     padding: '10px 12px', borderRadius: 10, flexWrap: 'wrap' },
+  handle: { color: COLORS.muted, fontSize: 14, cursor: 'grab', userSelect: 'none',
+    touchAction: 'none', padding: '0 2px' },
   dot: { width: 18, height: 18, borderRadius: 4, flexShrink: 0 },
   name: { flex: 1, color: COLORS.text, fontSize: 14, fontWeight: 500 },
   builtIn: { color: COLORS.muted, fontSize: 11 },

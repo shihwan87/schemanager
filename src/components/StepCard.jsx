@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { COLORS, STATUS_CYCLE, STATUS_LABEL, STATUS_COLOR } from '../styles/theme'
 import { useSubtasks } from '../hooks/useSubtasks'
 import { deadlineBadge, formatYYMMDD } from '../lib/format'
+import { DateInput } from './DateInput'
 
 export function StepCard({ step, onUpdate, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -70,10 +71,7 @@ export function StepCard({ step, onUpdate, onDelete }) {
         <div style={S.body}>
           <div style={S.fieldRow}>
             <label style={S.fieldLabel}>Deadline</label>
-            <input type="date" value={deadline}
-              onChange={e => setDeadline(e.target.value)}
-              onBlur={e => saveDeadline(e.target.value)}
-              style={S.dateInput} />
+            <DateInput value={deadline} onChange={saveDeadline} />
             {step.deadline && (
               <span style={S.dateYYMMDD}>{formatYYMMDD(step.deadline)}</span>
             )}

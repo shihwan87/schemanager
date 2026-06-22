@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { COLORS } from '../styles/theme'
+import { DateInput } from './DateInput'
 
 export function AddProjectModal({ open, initial, categories, onClose, onSave, onDelete }) {
   const [title, setTitle] = useState('')
@@ -61,8 +62,7 @@ export function AddProjectModal({ open, initial, categories, onClose, onSave, on
         </div>
 
         <label style={S.label}>Planned deadline</label>
-        <input style={S.input} type="date" value={deadline}
-          onChange={e => setDeadline(e.target.value)} />
+        <DateInput value={deadline} onChange={setDeadline} />
 
         {err && <p style={S.err}>{err}</p>}
 

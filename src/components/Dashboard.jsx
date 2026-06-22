@@ -11,7 +11,7 @@ import { CategoryManager } from './CategoryManager'
 
 export function Dashboard() {
   const { projects, loading, error, addProject, updateProject, deleteProject, refresh } = useProjects()
-  const { categories, addCategory, updateCategory, deleteCategory, colorFor } = useCategories()
+  const { categories, addCategory, updateCategory, deleteCategory, reorderCategories, colorFor } = useCategories()
   const { stepsByProject } = useStepsByProject()
 
   const [filter, setFilter] = useState('All')
@@ -99,7 +99,8 @@ export function Dashboard() {
 
       <CategoryManager open={catMgrOpen} onClose={() => setCatMgrOpen(false)}
         categories={categories}
-        onAdd={addCategory} onUpdate={updateCategory} onDelete={deleteCategory} />
+        onAdd={addCategory} onUpdate={updateCategory} onDelete={deleteCategory}
+        onReorder={reorderCategories} />
     </div>
   )
 }

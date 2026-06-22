@@ -10,6 +10,7 @@ export function useCategories() {
     const { data, error } = await supabase
       .from('categories')
       .select('*')
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true })
     if (!error) setCategories(data ?? [])
     setLoading(false)
@@ -44,7 +45,16 @@ export function useCategories() {
     if (error) throw error
   }
 
+  const reorderCategories = async (orderedIds) => {
+    const updates = orderedIds.map((id, idx) =>
+      supabase.from('categories').update({ sort_order: idx }).eq('id', id)
+    )
+    await Promise.all(updates)
+    await fetchAll()
+  }
+
   const colorFor = (name) => categories.find(c => c.name === name)?.color || '#8a8fa3'
 
-  return { categories, loading, addCategory, updateCategory, deleteCategory, colorFor, refresh: fetchAll }
+  return { categories, loading, addCategory, updateCategory, deleteCategory,
+    reorderCategories, colorFor, refresh: fetchAll }
 }
