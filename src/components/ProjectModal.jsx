@@ -74,7 +74,8 @@ export function ProjectModal({ project, accent, onClose, onEdit }) {
             <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
               <div style={S.stepList}>
                 {steps.map(s => (
-                  <StepCard key={s.id} step={s} onUpdate={onUpdateStep} onDelete={onDeleteStep} />
+                  <StepCard key={s.id} step={s} project={project} accent={accent}
+                    onUpdate={onUpdateStep} onDelete={onDeleteStep} />
                 ))}
               </div>
             </SortableContext>

@@ -5,8 +5,9 @@ import { COLORS, STATUS_CYCLE, STATUS_LABEL, STATUS_COLOR } from '../styles/them
 import { useSubtasks } from '../hooks/useSubtasks'
 import { deadlineBadge, formatYYMMDD } from '../lib/format'
 import { DateInput } from './DateInput'
+import { ExportToCalendarButton } from './ExportToCalendarButton'
 
-export function StepCard({ step, onUpdate, onDelete }) {
+export function StepCard({ step, project, accent, onUpdate, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: step.id })
 
@@ -96,6 +97,9 @@ export function StepCard({ step, onUpdate, onDelete }) {
           <div style={{ ...S.subhead, marginTop: 12 }}>Notes</div>
           <textarea value={notes} onChange={e => setNotes(e.target.value)} onBlur={saveNotes}
             style={S.notes} rows={3} placeholder="Enter notes…" />
+
+          <ExportToCalendarButton step={step} project={project} accent={accent}
+            onUpdate={onUpdate} />
 
           <button onClick={() => onDelete(step.id)} style={S.delStep}>Delete step</button>
         </div>
