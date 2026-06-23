@@ -45,6 +45,13 @@ function normalize(raw) {
   if (raw === undefined || raw === null) return ''
   const s = String(raw).trim()
   if (!s) return ''
+  // Pure digits (no separators): 8 = YYYYMMDD, 6 = YYMMDD. iOS numeric
+  // keypad has no hyphen, so allow typing the digits straight through.
+  if (/^\d+$/.test(s)) {
+    if (s.length === 8) return normalize(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`)
+    if (s.length === 6) return normalize(`${s.slice(0, 2)}-${s.slice(2, 4)}-${s.slice(4, 6)}`)
+    return null
+  }
   const parts = s.replace(/[./]/g, '-').split('-')
   if (parts.length !== 3) return null
   let [y, m, d] = parts
