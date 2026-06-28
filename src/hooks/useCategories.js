@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function useCategories() {
+// scope: 'work' | 'personal' — categories are isolated per scope.
+export function useCategories(scope = 'work') {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -10,37 +11,46 @@ export function useCategories() {
     const { data, error } = await supabase
       .from('categories')
       .select('*')
+      .eq('scope', scope)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true })
     if (!error) setCategories(data ?? [])
     setLoading(false)
-  }, [])
+  }, [scope])
 
   useEffect(() => {
     fetchAll()
-    const ch = supabase.channel('categories-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, fetchAll)
+    const ch = supabase.channel(`categories-rt-${scope}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'categories', filter: `scope=eq.${scope}` },
+        fetchAll,
+      )
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [fetchAll])
+  }, [fetchAll, scope])
 
   const addCategory = async ({ name, color }) => {
-    const { error } = await supabase.from('categories').insert({ name, color })
+    const { error } = await supabase.from('categories').insert({ name, color, scope })
     if (error) throw error
   }
 
   const updateCategory = async (id, patch) => {
-    // If renaming, propagate to projects.category
+    // If renaming, propagate to projects.category within the same scope only.
     const current = categories.find(c => c.id === id)
     if (current && patch.name && patch.name !== current.name) {
-      await supabase.from('projects').update({ category: patch.name }).eq('category', current.name)
+      await supabase
+        .from('projects')
+        .update({ category: patch.name })
+        .eq('category', current.name)
+        .eq('scope', scope)
     }
     const { error } = await supabase.from('categories').update(patch).eq('id', id)
     if (error) throw error
   }
 
   const deleteCategory = async (id) => {
-    // The DB trigger reassigns linked projects to 'Uncategorized'
+    // DB trigger reassigns linked projects to scope-matching 'Uncategorized'.
     const { error } = await supabase.from('categories').delete().eq('id', id)
     if (error) throw error
   }

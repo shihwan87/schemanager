@@ -10,9 +10,9 @@ import { AddProjectModal } from './AddProjectModal'
 import { ProjectModal } from './ProjectModal'
 import { CategoryManager } from './CategoryManager'
 
-export function Dashboard() {
-  const { projects, loading, error, addProject, updateProject, deleteProject, refresh } = useProjects()
-  const { categories, addCategory, updateCategory, deleteCategory, reorderCategories, colorFor } = useCategories()
+export function Dashboard({ scope = 'work', title = 'Projects' }) {
+  const { projects, loading, error, addProject, updateProject, deleteProject, refresh } = useProjects(scope)
+  const { categories, addCategory, updateCategory, deleteCategory, reorderCategories, colorFor } = useCategories(scope)
   const { stepsByProject } = useStepsByProject()
 
   const [filter, setFilter] = useState('All')
@@ -54,7 +54,7 @@ export function Dashboard() {
     <div style={S.page} className="safe-top safe-bottom">
       <header style={S.header}>
         <div>
-          <h1 style={S.h1}>Projects</h1>
+          <h1 style={S.h1}>{title}</h1>
           <p style={S.sub}>{projects.length} total</p>
         </div>
         <div style={S.headBtns}>

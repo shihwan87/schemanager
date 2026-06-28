@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function useProjects() {
+// scope: 'work' | 'personal' — required, isolates the two tabs.
+export function useProjects(scope = 'work') {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -11,25 +12,31 @@ export function useProjects() {
     const { data, error } = await supabase
       .from('projects')
       .select('*')
+      .eq('scope', scope)
       .order('deadline', { ascending: true, nullsFirst: false })
     if (error) setError(error)
     else setProjects(data ?? [])
     setLoading(false)
-  }, [])
+  }, [scope])
 
   useEffect(() => {
     fetchAll()
+    // Scope-keyed channel so WORK and PERSONAL do not re-render each other.
     const channel = supabase
-      .channel('projects-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, fetchAll)
+      .channel(`projects-realtime-${scope}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'projects', filter: `scope=eq.${scope}` },
+        fetchAll,
+      )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [fetchAll])
+  }, [fetchAll, scope])
 
-  const addProject = async ({ title, category, deadline }) => {
+  const addProject = async ({ title, category, deadline, priority = 'mid' }) => {
     const { data, error } = await supabase
       .from('projects')
-      .insert({ title, category, deadline })
+      .insert({ title, category, deadline, priority, scope })
       .select()
       .single()
     if (error) throw error

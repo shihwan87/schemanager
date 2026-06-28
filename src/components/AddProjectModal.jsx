@@ -2,10 +2,17 @@ import { useState, useEffect } from 'react'
 import { COLORS } from '../styles/theme'
 import { DateInput } from './DateInput'
 
+const PRIORITY_OPTS = [
+  { value: 'high', label: 'High', color: '#ff5b6e' },
+  { value: 'mid',  label: 'Mid',  color: '#f7b955' },
+  { value: 'low',  label: 'Low',  color: '#6b7280' },
+]
+
 export function AddProjectModal({ open, initial, categories, onClose, onSave, onDelete }) {
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [deadline, setDeadline] = useState('')
+  const [priority, setPriority] = useState('mid')
   const [confirmDel, setConfirmDel] = useState(false)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState(null)
@@ -15,6 +22,7 @@ export function AddProjectModal({ open, initial, categories, onClose, onSave, on
       setTitle(initial?.title || '')
       setCategory(initial?.category || categories[0]?.name || '')
       setDeadline(initial?.deadline || '')
+      setPriority(initial?.priority || 'mid')
       setConfirmDel(false); setErr(null)
     }
   }, [open, initial, categories])
@@ -27,7 +35,7 @@ export function AddProjectModal({ open, initial, categories, onClose, onSave, on
     if (!title.trim()) return
     setSaving(true); setErr(null)
     try {
-      await onSave({ title: title.trim(), category, deadline: deadline || null })
+      await onSave({ title: title.trim(), category, deadline: deadline || null, priority })
       onClose()
     } catch (e) { setErr(e.message || String(e)) }
     finally { setSaving(false) }
@@ -56,6 +64,25 @@ export function AddProjectModal({ open, initial, categories, onClose, onSave, on
                 }}>
                 <span style={{ ...S.swatch, background: c.color }} />
                 {c.name}
+              </button>
+            )
+          })}
+        </div>
+
+        <label style={S.label}>Priority</label>
+        <div style={S.catRow}>
+          {PRIORITY_OPTS.map(o => {
+            const selected = priority === o.value
+            return (
+              <button key={o.value} type="button" onClick={() => setPriority(o.value)}
+                style={{
+                  ...S.catBtn,
+                  borderColor: selected ? o.color : COLORS.border,
+                  color: selected ? o.color : COLORS.muted,
+                  background: selected ? `${o.color}15` : 'transparent',
+                }}>
+                <span style={{ ...S.swatch, background: o.color }} />
+                {o.label}
               </button>
             )
           })}
