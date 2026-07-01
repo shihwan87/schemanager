@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { COLORS, PALETTE, UNCATEGORIZED } from '../styles/theme'
+import { ARCHIVED } from '../lib/constants'
 
 export function CategoryManager({ open, onClose, categories, onAdd, onUpdate, onDelete, onReorder }) {
   const [newName, setNewName] = useState('')
@@ -117,7 +118,7 @@ function CategoryRow({
     opacity: isDragging ? 0.6 : 1,
     zIndex: isDragging ? 10 : 'auto',
   }
-  const isUncat = c.name === UNCATEGORIZED
+  const isReserved = c.name === UNCATEGORIZED || c.name === ARCHIVED
 
   return (
     <div ref={setNodeRef} style={{ ...S.row, ...style }}>
@@ -133,13 +134,13 @@ function CategoryRow({
         <>
           <span style={{ ...S.dot, background: c.color }} />
           <span style={S.name}>{c.name}</span>
-          {!isUncat && !isConfirming && (
+          {!isReserved && !isConfirming && (
             <>
               <button onClick={onStartEdit} style={S.edit}>Edit</button>
               <button onClick={onAskDelete} style={S.del}>Delete</button>
             </>
           )}
-          {!isUncat && isConfirming && (
+          {!isReserved && isConfirming && (
             <>
               <button onClick={onConfirmDelete} style={S.delConfirm}>
                 Reassign projects → Uncategorized
@@ -147,7 +148,8 @@ function CategoryRow({
               <button onClick={onCancelDelete} style={S.cancel}>Cancel</button>
             </>
           )}
-          {isUncat && <span style={S.builtIn}>(fallback)</span>}
+          {c.name === UNCATEGORIZED && <span style={S.builtIn}>(fallback)</span>}
+          {c.name === ARCHIVED && <span style={S.builtIn}>(auto)</span>}
         </>
       )}
     </div>

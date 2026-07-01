@@ -92,7 +92,7 @@ export function StepCard({ step, project, accent, onUpdate, onDelete }) {
         <button onClick={e => { e.stopPropagation(); setEditingTitle(true) }}
           style={S.editIcon} title="Rename step">✎</button>
         {step.deadline && (
-          <span style={{ ...S.badge, color: badge.color, borderColor: `${badge.color}55` }}>
+          <span style={{ ...S.badge, background: badge.color, color: '#fff' }}>
             {badge.text}
           </span>
         )}
@@ -165,7 +165,7 @@ const S = {
     fontSize: 14, fontWeight: 500, outline: 'none', fontFamily: 'inherit' },
   editIcon: { background: 'transparent', color: COLORS.muted, border: 0, cursor: 'pointer',
     fontSize: 13, padding: '0 2px', flexShrink: 0 },
-  badge: { fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, border: '1px solid' },
+  badge: { fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999 },
   status: { fontSize: 11, fontWeight: 600 },
   chev: { color: COLORS.muted, fontSize: 12, background: 'transparent', border: 0,
     cursor: 'pointer', padding: '0 4px' },

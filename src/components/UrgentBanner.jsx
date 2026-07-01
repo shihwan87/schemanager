@@ -13,14 +13,11 @@ export function UrgentBanner({ projects, stepsByProject, onClick }) {
   return (
     <div style={S.wrap}>
       <span style={S.icon}>⚠️</span>
-      <span style={S.text}>
-        <strong>{urgent.length}</strong> urgent project{urgent.length > 1 ? 's' : ''} (≤7d)
-      </span>
+      <span style={S.text}><strong>Due in 1 week</strong></span>
       <span style={S.titles}>
-        {urgent.slice(0, 3).map(p => (
+        {urgent.map(p => (
           <button key={p.id} onClick={() => onClick(p)} style={S.chip}>{p.title}</button>
         ))}
-        {urgent.length > 3 && <span style={S.more}>+{urgent.length - 3}</span>}
       </span>
     </div>
   )
@@ -35,5 +32,4 @@ const S = {
   titles: { display: 'flex', gap: 6, flexWrap: 'wrap' },
   chip: { background: COLORS.danger, color: '#fff', border: 0, borderRadius: 999,
     padding: '4px 10px', fontSize: 12, cursor: 'pointer' },
-  more: { color: COLORS.muted, fontSize: 12, alignSelf: 'center' },
 }

@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { COLORS } from '../styles/theme'
 import { effectiveDeadline } from '../lib/format'
+import { ARCHIVED } from '../lib/constants'
 import { useProjects } from '../hooks/useProjects'
 import { useCategories } from '../hooks/useCategories'
 import { useStepsByProject } from '../hooks/useStepsByProject'
@@ -21,10 +22,32 @@ export function Dashboard({ scope = 'work', title = 'Projects', itemNoun = 'Proj
   const [addOpen, setAddOpen] = useState(false)
   const [catMgrOpen, setCatMgrOpen] = useState(false)
 
+  // Auto-archive: any project with ≥1 step where every step is Done moves to
+  // 'Archived'. One-way: user restores manually via edit. Guarded ref prevents
+  // repeated writes for the same project id during a single mount.
+  const archivedRef = useRef(new Set())
+  useEffect(() => {
+    if (!projects.length) return
+    for (const p of projects) {
+      if (p.category === ARCHIVED) continue
+      const steps = stepsByProject.get(p.id) || []
+      if (steps.length === 0) continue
+      if (steps.every(s => s.status === 'Done') && !archivedRef.current.has(p.id)) {
+        archivedRef.current.add(p.id)
+        updateProject(p.id, { category: ARCHIVED }).then(refresh).catch(() => {
+          archivedRef.current.delete(p.id)
+        })
+      }
+    }
+  }, [projects, stepsByProject, updateProject, refresh])
+
   // Filter by category, then sort by soonest effective deadline (urgent first).
-  // Projects with no deadline sink to the bottom.
+  // Archived projects are hidden from All and every non-Archived filter.
   const visible = useMemo(() => {
-    const list = filter === 'All' ? projects : projects.filter(p => p.category === filter)
+    let list
+    if (filter === ARCHIVED)      list = projects.filter(p => p.category === ARCHIVED)
+    else if (filter === 'All')    list = projects.filter(p => p.category !== ARCHIVED)
+    else                          list = projects.filter(p => p.category === filter && p.category !== ARCHIVED)
     return [...list].sort((a, b) => {
       const da = effectiveDeadline(a, stepsByProject.get(a.id) || [])?.date || null
       const db = effectiveDeadline(b, stepsByProject.get(b.id) || [])?.date || null
@@ -34,6 +57,11 @@ export function Dashboard({ scope = 'work', title = 'Projects', itemNoun = 'Proj
       return 0
     })
   }, [projects, filter, stepsByProject])
+
+  const nonArchivedCount = useMemo(
+    () => projects.filter(p => p.category !== ARCHIVED).length,
+    [projects],
+  )
 
   const saveProject = async (payload) => {
     if (editing && editing !== 'new') {
@@ -55,7 +83,7 @@ export function Dashboard({ scope = 'work', title = 'Projects', itemNoun = 'Proj
       <header style={S.header}>
         <div>
           <h1 style={S.h1}>{title}</h1>
-          <p style={S.sub}>{projects.length} total</p>
+          <p style={S.sub}>{nonArchivedCount} total</p>
         </div>
         <div style={S.headBtns}>
           <button style={S.catBtn} onClick={() => setCatMgrOpen(true)}>Categories</button>
@@ -65,16 +93,20 @@ export function Dashboard({ scope = 'work', title = 'Projects', itemNoun = 'Proj
         </div>
       </header>
 
-      <UrgentBanner projects={projects} stepsByProject={stepsByProject}
-        onClick={(p) => setOpened(p)} />
+      <UrgentBanner projects={projects.filter(p => p.category !== ARCHIVED)}
+        stepsByProject={stepsByProject} onClick={(p) => setOpened(p)} />
 
       <div style={S.filters}>
         <FilterChip label="All" active={filter === 'All'} color={COLORS.text}
           onClick={() => setFilter('All')} />
-        {categories.map(c => (
+        {categories.filter(c => c.name !== ARCHIVED).map(c => (
           <FilterChip key={c.id} label={c.name} active={filter === c.name} color={c.color}
             onClick={() => setFilter(c.name)} />
         ))}
+        {categories.some(c => c.name === ARCHIVED) && (
+          <FilterChip label={ARCHIVED} active={filter === ARCHIVED}
+            color={colorFor(ARCHIVED)} onClick={() => setFilter(ARCHIVED)} />
+        )}
       </div>
 
       {loading && <p style={S.muted}>Loading…</p>}

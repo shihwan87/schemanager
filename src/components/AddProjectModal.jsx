@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { COLORS } from '../styles/theme'
+import { ARCHIVED } from '../lib/constants'
 import { DateInput } from './DateInput'
 
 const PRIORITY_OPTS = [
@@ -52,7 +53,7 @@ export function AddProjectModal({ open, initial, categories, itemNoun = 'Project
 
         <label style={S.label}>Category</label>
         <div style={S.catRow}>
-          {categories.map(c => {
+          {categories.filter(c => c.name !== ARCHIVED || initial?.category === ARCHIVED).map(c => {
             const selected = category === c.name
             return (
               <button key={c.id} type="button" onClick={() => setCategory(c.name)}
